@@ -1,106 +1,132 @@
 from tokenize import TokenType, Tokenizer
 
-class Ast(object):
+class AST(object):
     def __init__(self) -> None:
         pass
 
-class Num(Ast):
+
+class Literal:
     def __init__(self, token) -> None:
         self.type = token.type
         self.value = token.value
 
-class BinOp(Ast):
+class BinOp:
     def __init__(self, left, op, right) -> None:
         self.left = left
         self.op = op
         self.right = right
+        self.tree = None
 
-"""
-    factor -> int, (expr)
-    term -> factor | * / factor
-    expr -> term + - term
+class AstBuilder(AST):
 
-"""
-
-class AstBuiler:
     def __init__(self, tokens) -> None:
         self.position = 0
         self.tokens = tokens
         self.current_token = self.tokens[self.position] if len(self.tokens) > 0 else None
-        self.tree = None
+        self.nodes = []
 
-    def eat(self, token):
-        if token == self.current_token.type:
+    def eat(self, token_type):
+        if token_type == self.current_token.type:
             self.position += 1
             self.current_token = self.tokens[self.position] if self.position < len(self.tokens) else None
         else:
-            print(token, self.current_token.type)
-            raise Exception(f"Error parsing source ({token.type} != {self.current_token.type})")
+            raise Exception(f"error parsing source at line {self.current_token.line}")
 
     def factor(self):
-        #  print("fac = ", self.current_token.type, self.current_token.value)
         token = self.current_token
-        if self.current_token.type == TokenType.INTEGER:
+
+        if token.type == TokenType.INTEGER:
             self.eat(token.type)
-            return Num(token)
-        elif self.current_token.type == TokenType.LPAREN:
+            return Literal(token)
+        elif token.type == TokenType.LPAREN:
             self.eat(TokenType.LPAREN)
             node = self.expr()
             self.eat(TokenType.RPAREN)
             return node
         else:
-            pass
+            raise Exception(f"error parsing source at line {self.current_token.line}")
+
 
     def term(self):
         node = self.factor()
-        #  print("term = ", node.type, node.value)
-        while self.current_token.type in [TokenType.MULTIPLY, TokenType.DIVIDE]:
+        while self.current_token and self.current_token.type in [TokenType.MULTIPLY, TokenType.DIVIDE]:
             token = self.current_token
-            if token.type == TokenType.MULTIPLY:
-                self.eat(TokenType.MULTIPLY)
-            elif token.type == TokenType.DIVIDE:
-                self.eat(TokenType.DIVIDE)
-
-            node =  BinOp(left=node, op=token, right=self.factor())
+            self.eat(self.current_token.type)
+            node = BinOp(left=node, op=token, right=self.factor())
         
         return node
 
     def expr(self):
         node = self.term()
-        #  print("expr ", self.current_token.type)
-        while self.current_token.type in [TokenType.PLUS, TokenType.MINUS]:
+        while self.current_token and self.current_token.type in [TokenType.PLUS, TokenType.MINUS]:
             token = self.current_token
-            if token.type == TokenType.PLUS:
-                self.eat(TokenType.PLUS)
-            elif token.type == TokenType.MINUS:
-                self.eat(TokenType.MINUS)
-
+            self.eat(self.current_token.type)
             node = BinOp(left=node, op=token, right=self.term())
-        
+
         return node
 
     def walk(self, node):
         if not node:
             return
-        
+
         if type(node) == BinOp:
             self.walk(node.left)
-            self.walk(node.op)
             self.walk(node.right)
         else:
-            print(type(node), node.value)
+            print(node.value)
+
+    def calculate(self, node):
+        if not node:
+            return None
+
+        if type(node) == BinOp:
+            left_val = self.calculate(node.left)
+            right_val = self.calculate(node.right)
+            if node.op.value == '+':
+                return left_val + right_val if left_val and right_val else left_val or right_val
+            if node.op.value == '-':
+                return left_val - right_val if left_val and right_val else left_val or right_val
+            if node.op.value == '*':
+                return left_val * right_val if left_val and right_val else left_val or right_val
+            if node.op.value == '/':
+                return left_val / right_val if left_val and right_val else left_val or right_val
+        elif type(node) == Literal:
+            return int(node.value)
 
     def build(self):
-        self.tree = self.expr()
+        while self.current_token is not None:
+            self.nodes.append(self.expr())
 
+        return self
+
+
+"""
+        *
+       / \
+      +   1
+     / \
+    2   3
+
+    1 + 2
+
+"""
 
 source = """
-1 * (2 - (2 * 2 / 3));
+    2 + 2 + (3 + 4)
+    1 * 2
+    1 / 2
+    1 + 2
+    1 - 2
 """
+
+
+
 
 t = Tokenizer(source)
 t.tokenize()
-
-builder = AstBuiler(t.tokens())
+builder = AstBuilder(t.tokens())
 builder.build()
-builder.walk(builder.tree)
+
+for node in builder.nodes:
+    result = builder.calculate(node)
+    print(result)
