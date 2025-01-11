@@ -100,17 +100,6 @@ class AstBuilder(AST):
         return self
 
 
-"""
-        *
-       / \
-      +   1
-     / \
-    2   3
-
-    1 + 2
-
-"""
-
 source = """
     2 + 2 + (3 + 4)
     1 * 2
@@ -118,9 +107,6 @@ source = """
     1 + 2
     1 - 2
 """
-
-
-
 
 t = Tokenizer(source)
 t.tokenize()
