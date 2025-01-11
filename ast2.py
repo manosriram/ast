@@ -23,13 +23,14 @@ class AstBuilder(AST):
         self.position = 0
         self.tokens = tokens
         self.current_token = self.tokens[self.position] if len(self.tokens) > 0 else None
+        self.nodes = []
 
     def eat(self, token_type):
         if token_type == self.current_token.type:
             self.position += 1
             self.current_token = self.tokens[self.position] if self.position < len(self.tokens) else None
         else:
-            print(f"error parsing source at {token_type}")
+            raise Exception(f"error parsing source at line {self.current_token.line}")
 
     def factor(self):
         token = self.current_token
@@ -42,6 +43,9 @@ class AstBuilder(AST):
             node = self.expr()
             self.eat(TokenType.RPAREN)
             return node
+        else:
+            raise Exception(f"error parsing source at line {self.current_token.line}")
+
 
     def term(self):
         node = self.factor()
@@ -61,16 +65,11 @@ class AstBuilder(AST):
 
         return node
 
-    def build(self):
-        self.tree = self.expr()
-        return self
-
     def walk(self, node):
         if not node:
             return
 
         if type(node) == BinOp:
-            print("op = ", node.op.value)
             self.walk(node.left)
             self.walk(node.right)
         else:
@@ -85,10 +84,20 @@ class AstBuilder(AST):
             right_val = self.calculate(node.right)
             if node.op.value == '+':
                 return left_val + right_val if left_val and right_val else left_val or right_val
+            if node.op.value == '-':
+                return left_val - right_val if left_val and right_val else left_val or right_val
             if node.op.value == '*':
                 return left_val * right_val if left_val and right_val else left_val or right_val
+            if node.op.value == '/':
+                return left_val / right_val if left_val and right_val else left_val or right_val
         elif type(node) == Num:
             return int(node.value)
+
+    def build(self):
+        while self.current_token is not None:
+            self.nodes.append(self.expr())
+
+        return self
 
 
 """
@@ -99,11 +108,18 @@ class AstBuilder(AST):
     2   3
 """
 source = """
-    2 * 2 + (3 + 4)
+    2 + 2 + (3 + 4)
+    1 * 2
+    1 / 2
+    1 + 2
+    1 - 2
 """
 
 t = Tokenizer(source)
 t.tokenize()
 builder = AstBuilder(t.tokens())
-#  builder.build().walk(builder.tree)
-print(builder.build().calculate(builder.tree))
+builder.build()
+
+for node in builder.nodes:
+    result = builder.calculate(node)
+    print(result)
