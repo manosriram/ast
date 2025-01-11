@@ -108,11 +108,7 @@ source = """
     1 - 2
 """
 
-t = Tokenizer(source)
-t.tokenize()
-builder = AstBuilder(t.tokens())
-builder.build()
-
+builder = AstBuilder(Tokenizer(source).tokenize().tokens()).build()
 for node in builder.nodes:
     result = builder.calculate(node)
     print(result)

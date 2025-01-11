@@ -70,18 +70,7 @@ class Tokenizer:
                 self._tokens.append(Token(typ=TokenType.VAR, value=self._source[f:l-1], line=self._line))
                 self.eat()
 
-        #  self._tokens.append(Token(typ=TokenType.EOF, value=TokenType.EOF.value))
+        return self
 
     def tokens(self):
         return self._tokens
-
-
-#  source = """
-    #  a = 123 + 211;
-    #  c = a + ba;
-#  """
-
-#  tokenizer = Tokenizer(source)
-#  tokenizer.tokenize()
-#  print(tokenizer.tokens())
-
