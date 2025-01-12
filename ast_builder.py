@@ -19,9 +19,9 @@ class BinOp:
 
 class AstBuilder(AST):
 
-    def __init__(self, tokens) -> None:
+    def __init__(self, source) -> None:
         self.position = 0
-        self.tokens = tokens
+        self.tokens = Tokenizer(source).tokenize().tokens()
         self.current_token = self.tokens[self.position] if len(self.tokens) > 0 else None
         self.nodes = []
 
@@ -98,17 +98,3 @@ class AstBuilder(AST):
             self.nodes.append(self.expr())
 
         return self
-
-
-source = """
-    2 + 2 + (3 + 4)
-    1 * 2
-    1 / 2
-    1 + 2
-    1 - 2
-"""
-
-builder = AstBuilder(Tokenizer(source).tokenize().tokens()).build()
-for node in builder.nodes:
-    result = builder.calculate(node)
-    print(result)
